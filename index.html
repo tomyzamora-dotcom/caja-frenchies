@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Caja Frenchies</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>Sistema de Caja Frenchies</h1>
+      <p>Inventario de accesorios y gestión de reparaciones de celulares</p>
+    </header>
+
+    <main>
+      <nav class="menu">
+        <button data-action="add-product">Agregar producto</button>
+        <button data-action="show-products">Mostrar productos</button>
+        <button data-action="sell-product">Vender producto</button>
+        <button data-action="stock-control">Control de stock</button>
+        <button data-action="register-repair">Registrar reparación</button>
+        <button data-action="show-repairs">Mostrar reparaciones</button>
+        <button data-action="filter-state">Filtrar reparaciones por estado</button>
+        <button data-action="completed-history">Historial completadas</button>
+        <button data-action="completed-income">Ingresos completados</button>
+        <button data-action="update-repair">Actualizar estado reparación</button>
+        <button data-action="search">Buscar</button>
+      </nav>
+
+      <section class="panel" id="panel">
+        <h2>Bienvenido</h2>
+        <p>Usa el menú para gestionar accesorios y reparaciones.</p>
+      </section>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

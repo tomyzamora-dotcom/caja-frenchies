@@ -1,0 +1,14 @@
+C:\Users\Hugo\Desktop\facultad teoria\programacion 1\visual code\ejercicios resueltos\caja frenchies\bin\Release\net10.0\caja-frenchies.exe
+C:\Users\Hugo\Desktop\facultad teoria\programacion 1\visual code\ejercicios resueltos\caja frenchies\bin\Release\net10.0\caja-frenchies.deps.json
+C:\Users\Hugo\Desktop\facultad teoria\programacion 1\visual code\ejercicios resueltos\caja frenchies\bin\Release\net10.0\caja-frenchies.runtimeconfig.json
+C:\Users\Hugo\Desktop\facultad teoria\programacion 1\visual code\ejercicios resueltos\caja frenchies\bin\Release\net10.0\caja-frenchies.dll
+C:\Users\Hugo\Desktop\facultad teoria\programacion 1\visual code\ejercicios resueltos\caja frenchies\bin\Release\net10.0\caja-frenchies.pdb
+C:\Users\Hugo\Desktop\facultad teoria\programacion 1\visual code\ejercicios resueltos\caja frenchies\obj\Release\net10.0\caja-frenchies.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Hugo\Desktop\facultad teoria\programacion 1\visual code\ejercicios resueltos\caja frenchies\obj\Release\net10.0\caja-frenchies.AssemblyInfoInputs.cache
+C:\Users\Hugo\Desktop\facultad teoria\programacion 1\visual code\ejercicios resueltos\caja frenchies\obj\Release\net10.0\caja-frenchies.AssemblyInfo.cs
+C:\Users\Hugo\Desktop\facultad teoria\programacion 1\visual code\ejercicios resueltos\caja frenchies\obj\Release\net10.0\caja-frenchies.csproj.CoreCompileInputs.cache
+C:\Users\Hugo\Desktop\facultad teoria\programacion 1\visual code\ejercicios resueltos\caja frenchies\obj\Release\net10.0\caja-frenchies.dll
+C:\Users\Hugo\Desktop\facultad teoria\programacion 1\visual code\ejercicios resueltos\caja frenchies\obj\Release\net10.0\refint\caja-frenchies.dll
+C:\Users\Hugo\Desktop\facultad teoria\programacion 1\visual code\ejercicios resueltos\caja frenchies\obj\Release\net10.0\caja-frenchies.pdb
+C:\Users\Hugo\Desktop\facultad teoria\programacion 1\visual code\ejercicios resueltos\caja frenchies\obj\Release\net10.0\caja-frenchies.genruntimeconfig.cache
+C:\Users\Hugo\Desktop\facultad teoria\programacion 1\visual code\ejercicios resueltos\caja frenchies\obj\Release\net10.0\ref\caja-frenchies.dll

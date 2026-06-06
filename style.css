@@ -1,0 +1,254 @@
+:root {
+  --bg: #f3f5f8;
+  --surface: #ffffff;
+  --primary: #0d6efd;
+  --text: #1e293b;
+  --muted: #64748b;
+  --border: #d1d5db;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+header {
+  padding: 2rem;
+  background: linear-gradient(135deg, #2563eb, #0ea5e9);
+  color: white;
+  text-align: center;
+}
+
+header p {
+  margin: 0.5rem auto 0;
+  max-width: 640px;
+}
+
+main {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  flex: 1;
+}
+
+.menu {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  width: 260px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+.menu button {
+  border: 1px solid var(--border);
+  background: white;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.menu button:hover,
+.menu button:focus-visible {
+  background: var(--primary);
+  color: white;
+  border-color: transparent;
+}
+
+.panel {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  min-height: 420px;
+}
+
+.panel h2 {
+  margin-top: 0;
+}
+
+.field {
+  display: grid;
+  gap: 0.45rem;
+  margin-bottom: 1rem;
+}
+
+.field label {
+  font-weight: 600;
+}
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 0.95rem;
+}
+
+.field textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.actions button {
+  padding: 0.85rem 1rem;
+  border: none;
+  border-radius: 12px;
+  background: var(--primary);
+  color: white;
+  cursor: pointer;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+table th,
+table td {
+  padding: 0.85rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+table th {
+  background: #f8fafc;
+  font-weight: 700;
+}
+
+.note {
+  padding: 1rem;
+  border-radius: 14px;
+  background: #f1f5f9;
+  border: 1px dashed var(--border);
+}
+
+.pattern-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  max-width: 240px;
+  margin-top: 0.75rem;
+}
+
+.pattern-dot {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  background: white;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.pattern-dot:hover {
+  transform: scale(1.05);
+  border-color: var(--primary);
+}
+
+.pattern-dot.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+.pattern-display {
+  margin-top: 0.75rem;
+  padding: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #f8fafc;
+  font-size: 0.95rem;
+}
+
+.thumb {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.barcode-input-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+#barcodeVideo {
+  width: 100%;
+  max-height: 240px;
+  margin-top: 0.75rem;
+  border-radius: 12px;
+  background: #000;
+  display: none;
+}
+
+.low-stock {
+  background: #ffe4e6;
+}
+
+.low-stock td {
+  color: #991b1b;
+  font-weight: 700;
+}
+
+.pattern-controls {
+  margin-top: 0.75rem;
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.pattern-controls button {
+  padding: 0.65rem 0.85rem;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  background: var(--primary);
+  color: white;
+}
+
+@media (max-width: 900px) {
+  main {
+    flex-direction: column;
+  }
+
+  .menu {
+    width: 100%;
+  }
+}
