@@ -124,7 +124,7 @@ function showAddProduct() {
     </div>
     <div class="field" id="imagenField">
       <label for="fotoAccesorio">Foto del accesorio</label>
-      <input id="fotoAccesorio" type="file" accept="image/*">
+      <input id="fotoAccesorio" type="file" accept="image/*" capture="environment">
       <div class="photo-actions">
         <button id="useCamera" type="button">Usar cámara</button>
         <button id="capturePhoto" type="button" style="display:none;">Capturar</button>
@@ -132,6 +132,7 @@ function showAddProduct() {
       </div>
       <video id="photoVideo" autoplay playsinline></video>
       <img id="photoPreview" class="photo-preview" alt="Vista previa de accesorio" style="display:none;">
+      <div id="cameraHint" class="note" style="display:none; margin-top:0.75rem;"></div>
     </div>
     <div class="field" id="barcodeField">
       <label for="codigoBarra">Código de barra</label>
@@ -161,6 +162,7 @@ function showAddProduct() {
   const clearPhotoButton = document.getElementById('clearPhoto');
   const photoVideo = document.getElementById('photoVideo');
   const photoPreview = document.getElementById('photoPreview');
+  const cameraHint = document.getElementById('cameraHint');
   let fotoUrl = '';
 
   function updateAccessoryFields() {
@@ -180,7 +182,8 @@ function showAddProduct() {
   useCameraButton.addEventListener('click', async () => {
     const supported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
     if (!supported) {
-      alert('Tu navegador no soporta cámara. Usa el selector de archivo.');
+      cameraHint.textContent = 'Tu navegador no soporta cámara. Usa el selector de archivo.';
+      cameraHint.style.display = 'block';
       return;
     }
 
@@ -233,6 +236,18 @@ function showAddProduct() {
       console.warn(error);
     }
   });
+
+  // Mostrar nota si la página no está en un contexto seguro (HTTPS) o si no hay APIs de cámara
+  try {
+    const secure = location.protocol === 'https:' || location.hostname === 'localhost';
+    const hasMedia = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    if (!secure || !hasMedia) {
+      cameraHint.textContent = !hasMedia ? 'La cámara no está disponible en este navegador.' : 'Para usar la cámara en móviles, abre esta página por HTTPS o en localhost.';
+      cameraHint.style.display = 'block';
+    }
+  } catch (e) {
+    // ignore
+  }
 
   clearPhotoButton.addEventListener('click', () => {
     fotoUrl = '';
