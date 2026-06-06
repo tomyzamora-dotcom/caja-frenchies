@@ -4,6 +4,40 @@ let siguienteProductoId = 1;
 let siguienteReparacionId = 1;
 const lowStockThreshold = 3;
 
+function saveState() {
+  try {
+    const state = {
+      productos,
+      reparaciones,
+      siguienteProductoId,
+      siguienteReparacionId
+    };
+    localStorage.setItem('caja_frenchies_state', JSON.stringify(state));
+  } catch (e) {
+    console.warn('No se pudo guardar el estado:', e);
+  }
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem('caja_frenchies_state');
+    if (!raw) return false;
+    const state = JSON.parse(raw);
+    if (state && Array.isArray(state.productos)) {
+      productos.length = 0;
+      state.productos.forEach(p => productos.push(p));
+      reparaciones.length = 0;
+      if (Array.isArray(state.reparaciones)) state.reparaciones.forEach(r => reparaciones.push(r));
+      siguienteProductoId = state.siguienteProductoId || siguienteProductoId;
+      siguienteReparacionId = state.siguienteReparacionId || siguienteReparacionId;
+      return true;
+    }
+  } catch (e) {
+    console.warn('No se pudo leer el estado:', e);
+  }
+  return false;
+}
+
 const panel = document.getElementById('panel');
 const botones = document.querySelectorAll('.menu button');
 
@@ -15,6 +49,7 @@ function inicializar() {
     { id: siguienteProductoId++, nombre: 'Auriculares Bluetooth', precio: 850, stock: 8, categoria: 'Accesorio' }
   );
 }
+
 
 function renderPanel(html) {
   stopPhotoCamera();
@@ -290,6 +325,7 @@ function showAddProduct() {
     };
 
     productos.push(nuevoProducto);
+    saveState();
     stopBarcodeScanner();
     alert('Producto agregado correctamente.');
     showProducts();
@@ -437,6 +473,7 @@ function showSellProduct() {
     }
 
     alert(`Venta realizada: ${producto.nombre} \nTotal: $${producto.precio.toFixed(2)}`);
+    saveState();
     showProducts();
   });
 }
@@ -520,6 +557,7 @@ function updateStock(id, delta) {
   if (producto.stock <= lowStockThreshold) {
     alert(`Stock bajo para ${producto.nombre}: quedan ${producto.stock} unidades.`);
   }
+  saveState();
   showStockControl();
 }
 
@@ -620,6 +658,7 @@ function showRegisterRepair() {
     }
 
     reparaciones.push({ id: siguienteReparacionId++, cliente, telefono, domicilio, equipo, numeroSerie, problema, costo, contrasena, patron, estado: 'Recibido' });
+    saveState();
     alert('Reparación registrada con estado Recibido.');
     showRepairs();
   });
@@ -712,6 +751,7 @@ function showUpdateRepair() {
     if (!reparacion) return;
 
     reparacion.estado = estado;
+    saveState();
     alert('Estado actualizado correctamente.');
     showRepairs();
   });
@@ -785,6 +825,9 @@ function registrarEventos() {
   });
 }
 
-inicializar();
+// Cargar estado persistente; si no existe, inicializar con datos de ejemplo
+if (!loadState()) {
+  inicializar();
+}
 registrarEventos();
 showProducts();
