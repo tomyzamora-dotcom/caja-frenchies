@@ -17,6 +17,8 @@ function inicializar() {
 }
 
 function renderPanel(html) {
+  stopPhotoCamera();
+  stopBarcodeScanner();
   panel.innerHTML = html;
 }
 
@@ -123,6 +125,13 @@ function showAddProduct() {
     <div class="field" id="imagenField">
       <label for="fotoAccesorio">Foto del accesorio</label>
       <input id="fotoAccesorio" type="file" accept="image/*">
+      <div class="photo-actions">
+        <button id="useCamera" type="button">Usar cámara</button>
+        <button id="capturePhoto" type="button" style="display:none;">Capturar</button>
+        <button id="clearPhoto" type="button">Eliminar foto</button>
+      </div>
+      <video id="photoVideo" autoplay playsinline></video>
+      <img id="photoPreview" class="photo-preview" alt="Vista previa de accesorio" style="display:none;">
     </div>
     <div class="field" id="barcodeField">
       <label for="codigoBarra">Código de barra</label>
@@ -147,6 +156,12 @@ function showAddProduct() {
   const barcodeInput = document.getElementById('codigoBarra');
   const scanBarcodeButton = document.getElementById('scanBarcode');
   const barcodeStatus = document.getElementById('barcodeStatus');
+  const useCameraButton = document.getElementById('useCamera');
+  const capturePhotoButton = document.getElementById('capturePhoto');
+  const clearPhotoButton = document.getElementById('clearPhoto');
+  const photoVideo = document.getElementById('photoVideo');
+  const photoPreview = document.getElementById('photoPreview');
+  let fotoUrl = '';
 
   function updateAccessoryFields() {
     const mostrar = categoria.value === 'Accesorio';
@@ -155,11 +170,48 @@ function showAddProduct() {
     barcodeField.style.display = mostrar ? 'block' : 'none';
     if (!mostrar) {
       stopBarcodeScanner();
+      stopPhotoCamera();
     }
   }
 
   categoria.addEventListener('change', updateAccessoryFields);
   updateAccessoryFields();
+
+  useCameraButton.addEventListener('click', async () => {
+    const supported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    if (!supported) {
+      alert('Tu navegador no soporta cámara. Usa el selector de archivo.');
+      return;
+    }
+
+    try {
+      photoVideo.style.display = 'block';
+      capturePhotoButton.style.display = 'inline-flex';
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      photoStream = stream;
+      photoVideo.srcObject = stream;
+    } catch (error) {
+      console.warn('No se pudo activar la cámara:', error);
+      alert('No se pudo activar la cámara. Usa el selector de archivo.');
+    }
+  });
+
+  capturePhotoButton.addEventListener('click', () => {
+    if (!photoVideo.videoWidth || !photoVideo.videoHeight) {
+      alert('Espera a que la cámara esté lista.');
+      return;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = photoVideo.videoWidth;
+    canvas.height = photoVideo.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(photoVideo, 0, 0, canvas.width, canvas.height);
+    fotoUrl = canvas.toDataURL('image/png');
+    photoPreview.src = fotoUrl;
+    photoPreview.style.display = 'block';
+    stopPhotoCamera();
+  });
 
   scanBarcodeButton.addEventListener('click', async () => {
     barcodeStatus.textContent = 'Iniciando escáner...';
@@ -168,6 +220,26 @@ function showAddProduct() {
       barcodeInput.value = result;
       barcodeStatus.textContent = `Código detectado: ${result}`;
     }
+  });
+
+  fotoInput.addEventListener('change', async () => {
+    const file = fotoInput.files[0];
+    if (!file) return;
+    try {
+      fotoUrl = await readFileAsDataURL(file);
+      photoPreview.src = fotoUrl;
+      photoPreview.style.display = 'block';
+    } catch (error) {
+      console.warn(error);
+    }
+  });
+
+  clearPhotoButton.addEventListener('click', () => {
+    fotoUrl = '';
+    fotoInput.value = '';
+    photoPreview.src = '';
+    photoPreview.style.display = 'none';
+    stopPhotoCamera();
   });
 
   guardar.addEventListener('click', async () => {
@@ -188,7 +260,6 @@ function showAddProduct() {
       return;
     }
 
-    let fotoUrl = '';
     if (categoriaValor === 'Accesorio' && fotoArchivo) {
       fotoUrl = await readFileAsDataURL(fotoArchivo);
     }
@@ -219,6 +290,7 @@ function readFileAsDataURL(file) {
   });
 }
 
+let photoStream = null;
 let barcodeStream = null;
 let barcodeDetector = null;
 let barcodeScanInProgress = false;
@@ -273,6 +345,22 @@ async function startBarcodeScanner(statusElement) {
     stopBarcodeScanner();
     return null;
   }
+}
+
+function stopPhotoCamera() {
+  const video = document.getElementById('photoVideo');
+  if (video) {
+    video.srcObject = null;
+    video.style.display = 'none';
+  }
+
+  if (photoStream) {
+    photoStream.getTracks().forEach(track => track.stop());
+    photoStream = null;
+  }
+
+  const captureButton = document.getElementById('capturePhoto');
+  if (captureButton) captureButton.style.display = 'none';
 }
 
 function stopBarcodeScanner() {

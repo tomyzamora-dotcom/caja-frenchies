@@ -209,6 +209,22 @@ table th {
   align-items: center;
 }
 
+.photo-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.photo-actions button {
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 12px;
+  background: var(--primary);
+  color: white;
+  cursor: pointer;
+}
+
+#photoVideo,
 #barcodeVideo {
   width: 100%;
   max-height: 240px;
@@ -216,6 +232,16 @@ table th {
   border-radius: 12px;
   background: #000;
   display: none;
+}
+
+.photo-preview {
+  width: 100%;
+  max-width: 300px;
+  margin-top: 0.75rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  object-fit: cover;
+  display: block;
 }
 
 .low-stock {
