@@ -26,9 +26,14 @@
         <button data-action="completed-income">Ingresos completados</button>
         <button data-action="update-repair">Actualizar estado reparación</button>
         <button data-action="search">Buscar</button>
+        <button data-action="export-data">Exportar datos</button>
+        <button data-action="import-data">Importar datos</button>
+        <button data-action="reset-data">Restablecer datos</button>
+        <button data-action="test-save">Probar guardado</button>
       </nav>
 
       <section class="panel" id="panel">
+        <div id="storageNotifier" class="storage-notifier" style="display:none;"></div>
         <h2>Bienvenido</h2>
         <p>Usa el menú para gestionar accesorios y reparaciones.</p>
       </section>
@@ -38,3 +43,6 @@
   <script src="script.js"></script>
 </body>
 </html>
+
+# desde la carpeta del proyecto
+python -m http.server 8000

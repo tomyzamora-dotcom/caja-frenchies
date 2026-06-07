@@ -13,8 +13,11 @@ function saveState() {
       siguienteReparacionId
     };
     localStorage.setItem('caja_frenchies_state', JSON.stringify(state));
+    console.log('Estado guardado en localStorage.');
+    showStorageStatus('Estado guardado en localStorage.', 'info');
   } catch (e) {
     console.warn('No se pudo guardar el estado:', e);
+    showStorageStatus('No se pudo guardar en localStorage: ' + (e && e.message ? e.message : ''), 'error');
   }
 }
 
@@ -30,10 +33,13 @@ function loadState() {
       if (Array.isArray(state.reparaciones)) state.reparaciones.forEach(r => reparaciones.push(r));
       siguienteProductoId = state.siguienteProductoId || siguienteProductoId;
       siguienteReparacionId = state.siguienteReparacionId || siguienteReparacionId;
+      console.log('Estado cargado desde localStorage.');
+      showStorageStatus('Estado cargado desde localStorage.', 'info');
       return true;
     }
   } catch (e) {
     console.warn('No se pudo leer el estado:', e);
+    showStorageStatus('No se pudo leer estado desde localStorage: ' + (e && e.message ? e.message : ''), 'error');
   }
   return false;
 }
@@ -821,13 +827,147 @@ function registrarEventos() {
       if (action === 'completed-income') showCompletedIncome();
       if (action === 'update-repair') showUpdateRepair();
       if (action === 'search') showSearch();
-    });
+      if (action === 'export-data') exportStateToFile();
+      if (action === 'import-data') importStateFromFile();
+      if (action === 'reset-data') resetStateUI();
++      if (action === 'test-save') showSaveTest();
+function exportStateToFile() {
+  try {
+    const raw = localStorage.getItem('caja_frenchies_state') || JSON.stringify({ productos, reparaciones, siguienteProductoId, siguienteReparacionId });
+    const blob = new Blob([raw], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'caja_frenchies_backup.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    alert('No se pudo exportar los datos. Revisa la consola.');
+    console.warn(e);
+  }
+}
+
+function importStateFromFile() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'application/json';
+  input.onchange = async (ev) => {
+    const file = ev.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const state = JSON.parse(text);
+      if (state && Array.isArray(state.productos)) {
+        productos.length = 0;
+        state.productos.forEach(p => productos.push(p));
+        reparaciones.length = 0;
+        if (Array.isArray(state.reparaciones)) state.reparaciones.forEach(r => reparaciones.push(r));
+        siguienteProductoId = state.siguienteProductoId || siguienteProductoId;
+        siguienteReparacionId = state.siguienteReparacionId || siguienteReparacionId;
+        saveState();
+        alert('Importación completada.');
+        showProducts();
+      } else {
+        alert('Archivo inválido.');
+      }
+    } catch (e) {
+      alert('Error al importar el archivo.');
+      console.warn(e);
+    }
+  };
+  input.click();
+}
+
+function resetStateUI() {
+  if (!confirm('¿Restablecer datos? Esto eliminará los productos y reparaciones guardados.')) return;
+  localStorage.removeItem('caja_frenchies_state');
+  productos.length = 0;
+  reparaciones.length = 0;
+  siguienteProductoId = 1;
+  siguienteReparacionId = 1;
+  inicializar();
+  saveState();
+  showProducts();
+}
+
+function showStorageStatus(message, level = 'info') {
+  const el = document.getElementById('storageNotifier');
+  if (!el) return;
+  el.textContent = message;
+  el.className = 'storage-notifier ' + (level === 'error' ? 'error' : 'info');
+  el.style.display = 'block';
+}
+
+function hideStorageStatus() {
+  const el = document.getElementById('storageNotifier');
+  if (!el) return;
+  el.textContent = '';
+  el.style.display = 'none';
+}
+
+function showSaveTest() {
+  let raw = null;
+  try {
+    raw = localStorage.getItem('caja_frenchies_state') || JSON.stringify({ productos, reparaciones, siguienteProductoId, siguienteReparacionId }, null, 2);
+  } catch (e) {
+    raw = 'Error accediendo a localStorage: ' + (e && e.message ? e.message : '');
+  }
+
+  renderPanel(`
+    <h2>Probar guardado</h2>
+    <div class="actions">
+      <button id="backFromTest">Volver</button>
+      <button id="downloadState">Descargar JSON</button>
+    </div>
+    <div class="json-output"><pre>${escapeHtml(raw)}</pre></div>
+  `);
+
+  document.getElementById('backFromTest').addEventListener('click', () => showProducts());
+  document.getElementById('downloadState').addEventListener('click', () => {
+    const blob = new Blob([raw], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'caja_frenchies_state_debug.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   });
 }
 
-// Cargar estado persistente; si no existe, inicializar con datos de ejemplo
-if (!loadState()) {
-  inicializar();
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
+
+// Cargar estado persistente; si no existe, inicializar con datos de ejemplo
+function checkLocalStorageAvailable() {
+  try {
+    const testKey = '__caja_test__';
+    localStorage.setItem(testKey, '1');
+    localStorage.removeItem(testKey);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+if (!checkLocalStorageAvailable()) {
+  // show persistent notification
+  document.addEventListener('DOMContentLoaded', () => {
+    showStorageStatus('LocalStorage no está disponible en este contexto. Usa Exportar/Importar como alternativa.', 'error');
+  });
+} else {
+  if (!loadState()) {
+    inicializar();
+  }
+}
+
 registrarEventos();
 showProducts();

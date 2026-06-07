@@ -269,6 +269,35 @@ table th {
   color: white;
 }
 
+.storage-notifier {
+  padding: 0.85rem;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  display: none;
+}
+
+.storage-notifier.error {
+  background: #fff1f2;
+  color: #7f1d1d;
+  border: 1px solid #fecaca;
+}
+
+.storage-notifier.info {
+  background: #ecfeff;
+  color: #065f46;
+  border: 1px solid #bbf7d0;
+}
+
+.json-output pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: #0f172a;
+  color: #e6eef8;
+  padding: 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
 @media (max-width: 900px) {
   main {
     flex-direction: column;
