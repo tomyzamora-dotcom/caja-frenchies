@@ -830,7 +830,11 @@ function registrarEventos() {
       if (action === 'export-data') exportStateToFile();
       if (action === 'import-data') importStateFromFile();
       if (action === 'reset-data') resetStateUI();
-+      if (action === 'test-save') showSaveTest();
+      if (action === 'test-save') showSaveTest();
+    });
+  });
+}
+
 function exportStateToFile() {
   try {
     const raw = localStorage.getItem('caja_frenchies_state') || JSON.stringify({ productos, reparaciones, siguienteProductoId, siguienteReparacionId });
