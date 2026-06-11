@@ -1,7 +1,15 @@
 const productos = [];
 const reparaciones = [];
+const ventas = [];
+const turnos = [];
+const usuarios = [];
+let usuarioActual = null;
+let turnoActual = null;
 let siguienteProductoId = 1;
 let siguienteReparacionId = 1;
+let siguienteVentaId = 1;
+let siguienteTurnoId = 1;
+let siguienteUsuarioId = 1;
 const lowStockThreshold = 3;
 
 function saveState() {
@@ -9,8 +17,16 @@ function saveState() {
     const state = {
       productos,
       reparaciones,
+      ventas,
+      turnos,
+      usuarios,
+      usuarioActual,
+      turnoActual,
       siguienteProductoId,
-      siguienteReparacionId
+      siguienteReparacionId,
+      siguienteVentaId,
+      siguienteTurnoId,
+      siguienteUsuarioId
     };
     localStorage.setItem('caja_frenchies_state', JSON.stringify(state));
     console.log('Estado guardado en localStorage.');
@@ -31,8 +47,19 @@ function loadState() {
       state.productos.forEach(p => productos.push(p));
       reparaciones.length = 0;
       if (Array.isArray(state.reparaciones)) state.reparaciones.forEach(r => reparaciones.push(r));
+      ventas.length = 0;
+      if (Array.isArray(state.ventas)) state.ventas.forEach(v => ventas.push(v));
+      turnos.length = 0;
+      if (Array.isArray(state.turnos)) state.turnos.forEach(t => turnos.push(t));
+      usuarios.length = 0;
+      if (Array.isArray(state.usuarios)) state.usuarios.forEach(u => usuarios.push(u));
+      usuarioActual = state.usuarioActual || null;
+      turnoActual = state.turnoActual || null;
       siguienteProductoId = state.siguienteProductoId || siguienteProductoId;
       siguienteReparacionId = state.siguienteReparacionId || siguienteReparacionId;
+      siguienteVentaId = state.siguienteVentaId || siguienteVentaId;
+      siguienteTurnoId = state.siguienteTurnoId || siguienteTurnoId;
+      siguienteUsuarioId = state.siguienteUsuarioId || siguienteUsuarioId;
       console.log('Estado cargado desde localStorage.');
       showStorageStatus('Estado cargado desde localStorage.', 'info');
       return true;
@@ -42,6 +69,156 @@ function loadState() {
     showStorageStatus('No se pudo leer estado desde localStorage: ' + (e && e.message ? e.message : ''), 'error');
   }
   return false;
+}
+
+function updateConnectionStatus() {
+  const dot = document.getElementById('connectionDot');
+  const text = document.getElementById('connectionText');
+  const note = document.getElementById('connectionNote');
+  if (!dot || !text || !note) return;
+
+  const online = navigator.onLine;
+  dot.classList.toggle('online', online);
+  dot.classList.toggle('offline', !online);
+  text.textContent = online ? 'Con Internet' : 'Sin Internet';
+
+  if (online) {
+    note.textContent = 'Conexión detectada: guardado automático habilitado.';
+    saveState();
+    showStorageStatus('Conexión detectada: guardado automático habilitado.', 'info');
+  } else {
+    note.textContent = 'Sin conexión: trabajando en modo local.';
+  }
+}
+
+function registrarEventosConexion() {
+  window.addEventListener('online', updateConnectionStatus);
+  window.addEventListener('offline', updateConnectionStatus);
+  updateConnectionStatus();
+}
+
+function ensureDefaultAdmin() {
+  if (usuarios.length === 0) {
+    usuarios.push({ id: siguienteUsuarioId++, usuario: 'admin', password: 'admin123', rol: 'admin' });
+    saveState();
+  }
+}
+
+function updateUserHeader() {
+  const status = document.getElementById('loginStatus');
+  const logout = document.getElementById('logoutButton');
+  const menu = document.querySelector('.menu');
+  if (!status || !logout || !menu) return;
+
+  if (usuarioActual) {
+    status.textContent = `Usuario: ${usuarioActual.usuario} (${usuarioActual.rol})`;
+    logout.style.display = 'inline-flex';
+    menu.style.display = 'grid';
+    updateMenuButtons(usuarioActual.rol);
+  } else {
+    status.textContent = 'No conectado';
+    logout.style.display = 'none';
+    menu.style.display = 'none';
+  }
+}
+
+function updateMenuButtons(role) {
+  const vendedorActions = new Set([
+    'start-shift',
+    'search',
+    'show-products',
+    'sell-product',
+    'register-repair',
+    'completed-history'
+  ]);
+
+  botones.forEach(button => {
+    const action = button.dataset.action;
+    if (role === 'vendedor') {
+      button.style.display = vendedorActions.has(action) ? 'block' : 'none';
+    } else {
+      button.style.display = action === 'start-shift' ? 'none' : 'block';
+    }
+  });
+}
+
+function getCurrentVendedor() {
+  if (usuarioActual && usuarioActual.rol === 'vendedor') {
+    return usuarioActual.usuario;
+  }
+  if (turnoActual) {
+    return turnoActual.vendedor;
+  }
+  return 'Sin vendedor';
+}
+
+function getVendedoresRegistrados() {
+  return usuarios.filter(u => u.rol === 'vendedor');
+}
+
+function showLogin(message = '') {
+  renderPanel(`
+    <h2>Inicio de sesión</h2>
+    ${message ? `<div class="note">${message}</div>` : ''}
+    <div class="field">
+      <label for="loginUsuario">Usuario</label>
+      <input id="loginUsuario" type="text" placeholder="Ingresa tu usuario">
+    </div>
+    <div class="field">
+      <label for="loginPassword">Contraseña</label>
+      <input id="loginPassword" type="password" placeholder="Ingresa tu contraseña">
+    </div>
+    <div class="actions">
+      <button id="loginButton">Iniciar sesión</button>
+    </div>
+  `);
+
+  document.getElementById('loginButton').addEventListener('click', () => {
+    const usuario = document.getElementById('loginUsuario').value.trim();
+    const password = document.getElementById('loginPassword').value.trim();
+    if (!usuario || !password) {
+      showLogin('Completa usuario y contraseña.');
+      return;
+    }
+
+    const cuenta = usuarios.find(u => u.usuario === usuario && u.password === password);
+    if (!cuenta) {
+      showLogin('Usuario o contraseña incorrectos.');
+      return;
+    }
+
+    usuarioActual = cuenta;
+    saveState();
+    updateUserHeader();
+    if (cuenta.rol === 'vendedor') {
+      showCloseShift();
+    } else {
+      showProducts();
+    }
+  });
+}
+
+function logout() {
+  if (usuarioActual && usuarioActual.rol === 'vendedor' && turnoActual && turnoActual.vendedor === usuarioActual.usuario) {
+    const totalVentas = turnoActual.ventas ? turnoActual.ventas.reduce((sum, v) => sum + v.precio, 0) : 0;
+    const totalReparaciones = turnoActual.reparaciones ? turnoActual.reparaciones.reduce((sum, r) => sum + r.costo, 0) : 0;
+    const ingresosTotales = totalVentas + totalReparaciones;
+    const turnoCerrado = {
+      ...turnoActual,
+      fin: new Date().toISOString(),
+      totalVentas,
+      totalReparaciones,
+      ingresosTotales
+    };
+    turnos.push(turnoCerrado);
+    turnoActual = null;
+    alert('Turno cerrado automáticamente al cerrar sesión.');
+  }
+
+  usuarioActual = null;
+  saveState();
+  updateUserHeader();
+  showLogin('Has cerrado sesión.');
 }
 
 const panel = document.getElementById('panel');
@@ -115,6 +292,7 @@ function crearTablaReparaciones(lista) {
             <th>Problema</th>
             <th>Contraseña</th>
             <th>Patrón</th>
+            <th>Vendedor</th>
             <th>Costo</th>
             <th>Estado</th>
           </tr>
@@ -131,6 +309,7 @@ function crearTablaReparaciones(lista) {
               <td>${r.problema}</td>
               <td>${r.contrasena || 'N/A'}</td>
               <td>${r.patron || 'N/A'}</td>
+              <td>${r.vendedor || 'N/A'}</td>
               <td>$${r.costo.toFixed(2)}</td>
               <td>${r.estado}</td>
             </tr>
@@ -443,6 +622,11 @@ function showProducts() {
 }
 
 function showSellProduct() {
+  if (usuarioActual && usuarioActual.rol === 'vendedor' && (!turnoActual || turnoActual.vendedor !== usuarioActual.usuario)) {
+    renderPanel('<h2>Vender producto</h2><p class="note">Debes iniciar tu turno antes de registrar ventas.</p>');
+    return;
+  }
+
   if (productos.length === 0) {
     renderPanel('<h2>Vender producto</h2><p class="note">No hay productos disponibles para vender.</p>');
     return;
@@ -456,6 +640,14 @@ function showSellProduct() {
         ${productos.map(p => `<option value="${p.id}">${p.nombre} (${p.categoria}) - $${p.precio.toFixed(2)}</option>`).join('')}
       </select>
     </div>
+    <div class="field">
+      <label>Vendedor</label>
+      <p class="note">${getCurrentVendedor()}</p>
+    </div>
+    <div class="field">
+      <label>Turno activo</label>
+      <p class="note">${turnoActual ? `Turno #${turnoActual.id} - ${turnoActual.vendedor}` : 'No hay turno activo. Inicia turno primero.'}</p>
+    </div>
     <div class="actions">
       <button id="vender">Vender</button>
     </div>
@@ -464,6 +656,7 @@ function showSellProduct() {
   document.getElementById('vender').addEventListener('click', () => {
     const id = parseInt(document.getElementById('productoVenta').value, 10);
     const producto = productos.find(p => p.id === id);
+    const vendedor = getCurrentVendedor();
 
     if (!producto) return;
 
@@ -478,7 +671,22 @@ function showSellProduct() {
       }
     }
 
-    alert(`Venta realizada: ${producto.nombre} \nTotal: $${producto.precio.toFixed(2)}`);
+    ventas.push({
+      id: siguienteVentaId++,
+      productoId: producto.id,
+      productoNombre: producto.nombre,
+      precio: producto.precio,
+      vendedor,
+      fecha: new Date().toISOString(),
+      turnoId: turnoActual ? turnoActual.id : null
+    });
+
+    if (turnoActual) {
+      turnoActual.ventas = turnoActual.ventas || [];
+      turnoActual.ventas.push(ventas[ventas.length - 1]);
+    }
+
+    alert(`Venta realizada: ${producto.nombre} \nVendedor: ${vendedor} \nTotal: $${producto.precio.toFixed(2)}`);
     saveState();
     showProducts();
   });
@@ -568,8 +776,17 @@ function updateStock(id, delta) {
 }
 
 function showRegisterRepair() {
+  if (usuarioActual && usuarioActual.rol === 'vendedor' && (!turnoActual || turnoActual.vendedor !== usuarioActual.usuario)) {
+    renderPanel('<h2>Registrar reparación</h2><p class="note">Debes iniciar tu turno antes de registrar reparaciones.</p>');
+    return;
+  }
+
   renderPanel(`
     <h2>Registrar reparación</h2>
+    <div class="field">
+      <label>Vendedor</label>
+      <p class="note">${getCurrentVendedor()}</p>
+    </div>
     <div class="field">
       <label for="cliente">Nombre del cliente</label>
       <input id="cliente" type="text" placeholder="Ej. Juan Pérez">
@@ -648,6 +865,7 @@ function showRegisterRepair() {
   });
 
   document.getElementById('guardarReparacion').addEventListener('click', () => {
+    const vendedor = getCurrentVendedor();
     const cliente = document.getElementById('cliente').value.trim();
     const telefono = document.getElementById('telefono').value.trim();
     const domicilio = document.getElementById('domicilio').value.trim();
@@ -663,7 +881,29 @@ function showRegisterRepair() {
       return;
     }
 
-    reparaciones.push({ id: siguienteReparacionId++, cliente, telefono, domicilio, equipo, numeroSerie, problema, costo, contrasena, patron, estado: 'Recibido' });
+    const nuevaReparacion = {
+      id: siguienteReparacionId++,
+      cliente,
+      telefono,
+      domicilio,
+      equipo,
+      numeroSerie,
+      problema,
+      costo,
+      contrasena,
+      patron,
+      estado: 'Recibido',
+      vendedor,
+      fecha: new Date().toISOString(),
+      turnoId: turnoActual ? turnoActual.id : null
+    };
+
+    reparaciones.push(nuevaReparacion);
+    if (turnoActual) {
+      turnoActual.reparaciones = turnoActual.reparaciones || [];
+      turnoActual.reparaciones.push(nuevaReparacion);
+    }
+
     saveState();
     alert('Reparación registrada con estado Recibido.');
     showRepairs();
@@ -805,10 +1045,195 @@ function showSearch() {
         r.numeroSerie.toLowerCase().includes(termino) ||
         r.problema.toLowerCase().includes(termino) ||
         r.contrasena.toLowerCase().includes(termino) ||
-        r.patron.toLowerCase().includes(termino)
+        r.patron.toLowerCase().includes(termino) ||
+        (r.vendedor || '').toLowerCase().includes(termino)
       );
       resultadosContenedor.innerHTML = crearTablaReparaciones(resultados);
     }
+  });
+}
+
+function showCloseShift() {
+  if (turnoActual) {
+    const totalVentas = turnoActual.ventas ? turnoActual.ventas.reduce((sum, v) => sum + v.precio, 0) : 0;
+    const totalReparaciones = turnoActual.reparaciones ? turnoActual.reparaciones.reduce((sum, r) => sum + r.costo, 0) : 0;
+    const ingresosTotales = totalVentas + totalReparaciones;
+
+    renderPanel(`
+      <h2>Cierre de turno</h2>
+      <div class="note">
+        Turno activo: #${turnoActual.id} - ${turnoActual.vendedor}<br>
+        Inicio: ${new Date(turnoActual.inicio).toLocaleString()}<br>
+        Ventas registradas: ${turnoActual.ventas ? turnoActual.ventas.length : 0}<br>
+        Reparaciones registradas: ${turnoActual.reparaciones ? turnoActual.reparaciones.length : 0}<br>
+        Total de ingresos: $${ingresosTotales.toFixed(2)}
+      </div>
+      <div class="actions">
+        <button id="cerrarTurno">Cerrar turno</button>
+      </div>
+    `);
+
+    document.getElementById('cerrarTurno').addEventListener('click', () => {
+      const turnoCerrado = {
+        ...turnoActual,
+        fin: new Date().toISOString(),
+        totalVentas,
+        totalReparaciones,
+        ingresosTotales
+      };
+      turnos.push(turnoCerrado);
+      turnoActual = null;
+      saveState();
+      alert('Turno cerrado correctamente.');
+      if (usuarioActual && usuarioActual.rol === 'admin') {
+        showSellerReport();
+      } else {
+        logout();
+      }
+    });
+  } else {
+    if (usuarioActual && usuarioActual.rol === 'admin') {
+      showSellerReport();
+      return;
+    }
+
+    const vendedores = getVendedoresRegistrados();
+    const esVendedor = usuarioActual && usuarioActual.rol === 'vendedor';
+
+    renderPanel(`
+      <h2>Apertura de turno</h2>
+      ${esVendedor ? `<div class="note">Vendedor autenticado: ${usuarioActual.usuario}</div>` : ''}
+      ${usuarioActual && usuarioActual.rol === 'admin' ? `
+        <div class="field">
+          <label for="vendedorTurno">Selecciona vendedor</label>
+          <select id="vendedorTurno">
+            <option value="">Selecciona...</option>
+            ${vendedores.map(u => `<option value="${u.usuario}">${u.usuario}</option>`).join('')}
+          </select>
+        </div>
+        ${vendedores.length === 0 ? '<p class="note">No hay vendedores registrados. Crea usuarios de vendedor primero.</p>' : ''}
+      ` : ''}
+      <div class="actions">
+        <button id="iniciarTurno">Iniciar turno</button>
+      </div>
+    `);
+
+    document.getElementById('iniciarTurno').addEventListener('click', () => {
+      let vendedor = '';
+      if (esVendedor) {
+        vendedor = usuarioActual.usuario;
+      } else {
+        vendedor = document.getElementById('vendedorTurno') ? document.getElementById('vendedorTurno').value.trim() : '';
+      }
+
+      if (!vendedor) {
+        alert('Selecciona el usuario de vendedor para iniciar el turno.');
+        return;
+      }
+
+      turnoActual = {
+        id: siguienteTurnoId++,
+        vendedor,
+        inicio: new Date().toISOString(),
+        ventas: [],
+        reparaciones: []
+      };
+      saveState();
+      alert(`Turno iniciado para ${vendedor}.`);
+      showCloseShift();
+    });
+  }
+}
+
+function showSellerReport() {
+  if (!usuarioActual || usuarioActual.rol !== 'admin') {
+    alert('Solo el administrador puede ver el reporte detallado por vendedor.');
+    return;
+  }
+
+  const vendedoresSet = new Set();
+  ventas.forEach(v => vendedoresSet.add(v.vendedor));
+  reparaciones.forEach(r => vendedoresSet.add(r.vendedor || 'Sin vendedor'));
+  turnos.forEach(t => vendedoresSet.add(t.vendedor));
+  if (turnoActual) vendedoresSet.add(turnoActual.vendedor);
+
+  const vendedores = Array.from(vendedoresSet).sort();
+
+  const filas = vendedores.map(vendedor => {
+    const ventasVendedor = ventas.filter(v => v.vendedor === vendedor);
+    const reparacionesVendedor = reparaciones.filter(r => (r.vendedor || 'Sin vendedor') === vendedor);
+    const turnosVendedor = turnos.filter(t => t.vendedor === vendedor);
+    const ventasCount = ventasVendedor.length;
+    const reparacionesCount = reparacionesVendedor.length;
+    const ingresosVentas = ventasVendedor.reduce((sum, v) => sum + v.precio, 0);
+    const ingresosReparaciones = reparacionesVendedor.reduce((sum, r) => sum + r.costo, 0);
+    const ingresosTotales = ingresosVentas + ingresosReparaciones;
+
+    const inicioTurnoActivo = turnoActual && turnoActual.vendedor === vendedor ? new Date(turnoActual.inicio).toLocaleString() : null;
+    const turnosInicio = turnosVendedor.map(t => new Date(t.inicio).getTime());
+    const inicioMasAntiguo = turnosInicio.length > 0 ? new Date(Math.min(...turnosInicio)).toLocaleString() : null;
+    const inicioTexto = inicioTurnoActivo || inicioMasAntiguo || 'N/A';
+
+    const finTurnos = turnosVendedor.filter(t => t.fin).map(t => new Date(t.fin).getTime());
+    const finMasReciente = finTurnos.length > 0 ? new Date(Math.max(...finTurnos)).toLocaleString() : null;
+    const finTexto = inicioTurnoActivo ? 'Activo' : (finMasReciente || 'N/A');
+
+    return `
+      <tr>
+        <td>${vendedor}</td>
+        <td>${ventasCount}</td>
+        <td>$${ingresosVentas.toFixed(2)}</td>
+        <td>${reparacionesCount}</td>
+        <td>$${ingresosReparaciones.toFixed(2)}</td>
+        <td>$${ingresosTotales.toFixed(2)}</td>
+        <td>${turnosVendedor.length}</td>
+        <td>${inicioTexto}</td>
+        <td>${finTexto}</td>
+      </tr>
+    `;
+  }).join('');
+
+  renderPanel(`
+    <h2>Reporte detallado por vendedor</h2>
+    <div class="note">Turno activo: ${turnoActual ? `#${turnoActual.id} - ${turnoActual.vendedor}` : 'No hay turno activo'}</div>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Vendedor</th>
+            <th>Ventas</th>
+            <th>Ingresos por ventas</th>
+            <th>Reparaciones</th>
+            <th>Ingresos por reparaciones</th>
+            <th>Ingresos totales</th>
+            <th>Turnos cerrados</th>
+            <th>Apertura turno</th>
+            <th>Cierre turno</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${filas || '<tr><td colspan="9">No hay datos de vendedores.</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+    <div class="actions">
+      <button id="verTurnos">Ver historial de turnos</button>
+    </div>
+    <div id="turnoHistory"></div>
+  `);
+
+  document.getElementById('verTurnos').addEventListener('click', () => {
+    const historial = turnos.map(t => `
+      <div class="note">
+        Turno #${t.id} - ${t.vendedor}<br>
+        Inicio: ${new Date(t.inicio).toLocaleString()}<br>
+        Cierre: ${new Date(t.fin).toLocaleString()}<br>
+        Ventas: ${t.ventas ? t.ventas.length : 0}<br>
+        Reparaciones: ${t.reparaciones ? t.reparaciones.length : 0}<br>
+        Total: $${(t.ingresosTotales || 0).toFixed(2)}
+      </div>
+    `).join('') || '<p class="note">No hay turnos cerrados.</p>';
+    document.getElementById('turnoHistory').innerHTML = historial;
   });
 }
 
@@ -827,17 +1252,150 @@ function registrarEventos() {
       if (action === 'completed-income') showCompletedIncome();
       if (action === 'update-repair') showUpdateRepair();
       if (action === 'search') showSearch();
+      if (action === 'start-shift') showCloseShift();
       if (action === 'export-data') exportStateToFile();
       if (action === 'import-data') importStateFromFile();
       if (action === 'reset-data') resetStateUI();
       if (action === 'test-save') showSaveTest();
+      if (action === 'close-shift') showCloseShift();
+      if (action === 'seller-report') showSellerReport();
+      if (action === 'manage-users') showManageUsers();
+    });
+  });
+
+  const logoutButton = document.getElementById('logoutButton');
+  if (logoutButton) {
+    logoutButton.addEventListener('click', logout);
+  }
+}
+
+function showManageUsers() {
+  if (!usuarioActual || usuarioActual.rol !== 'admin') {
+    alert('Solo el usuario maestro puede administrar cuentas.');
+    return;
+  }
+
+  renderPanel(`
+    <h2>Administrar usuarios</h2>
+    <div class="actions">
+      <button id="crearUsuario">Crear usuario</button>
+    </div>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Usuario</th>
+            <th>Rol</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${usuarios.map(u => `
+            <tr>
+              <td>${u.id}</td>
+              <td>${u.usuario}</td>
+              <td>${u.rol}</td>
+              <td>
+                <button class="edit-user" data-id="${u.id}">Editar</button>
+                ${u.rol !== 'admin' ? `<button class="delete-user" data-id="${u.id}">Eliminar</button>` : ''}
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div id="userFormContainer"></div>
+  `);
+
+  document.getElementById('crearUsuario').addEventListener('click', () => showUserForm());
+  document.querySelectorAll('.edit-user').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = Number(btn.dataset.id);
+      showUserForm(usuarios.find(u => u.id === id));
+    });
+  });
+  document.querySelectorAll('.delete-user').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = Number(btn.dataset.id);
+      if (!confirm('Eliminar este usuario?')) return;
+      const index = usuarios.findIndex(u => u.id === id);
+      if (index >= 0) {
+        usuarios.splice(index, 1);
+        saveState();
+        showManageUsers();
+      }
     });
   });
 }
 
+function showUserForm(usuario = null) {
+  const isEdit = Boolean(usuario);
+  const selectedRol = usuario ? usuario.rol : 'vendedor';
+  const userFormContainer = document.getElementById('userFormContainer');
+  if (!userFormContainer) return;
+
+  userFormContainer.innerHTML = `
+    <div class="panel subpanel">
+      <h3>${isEdit ? 'Editar usuario' : 'Crear usuario'}</h3>
+      <div class="field">
+        <label for="nuevoUsuario">Usuario</label>
+        <input id="nuevoUsuario" type="text" value="${usuario ? usuario.usuario : ''}" ${isEdit ? 'disabled' : ''}>
+      </div>
+      <div class="field">
+        <label for="nuevaPassword">Contraseña</label>
+        <input id="nuevaPassword" type="password" placeholder="${isEdit ? 'Dejar en blanco para mantener' : 'Contraseña'}">
+      </div>
+      <div class="field">
+        <label for="nuevoRol">Rol</label>
+        <select id="nuevoRol">
+          <option value="admin" ${selectedRol === 'admin' ? 'selected' : ''}>Administrador</option>
+          <option value="vendedor" ${selectedRol === 'vendedor' ? 'selected' : ''}>Vendedor</option>
+        </select>
+      </div>
+      <div class="actions">
+        <button id="guardarUsuario">${isEdit ? 'Guardar cambios' : 'Crear usuario'}</button>
+        <button id="cancelarUsuario" type="button">Cancelar</button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('guardarUsuario').addEventListener('click', () => {
+    const username = document.getElementById('nuevoUsuario').value.trim();
+    const password = document.getElementById('nuevaPassword').value.trim();
+    const rol = document.getElementById('nuevoRol').value;
+
+    if (!username) {
+      alert('Ingresa un usuario válido.');
+      return;
+    }
+
+    if (!isEdit && !password) {
+      alert('Ingresa una contraseña para el nuevo usuario.');
+      return;
+    }
+
+    if (isEdit) {
+      usuario.rol = rol;
+      if (password) usuario.password = password;
+    } else {
+      if (usuarios.find(u => u.usuario === username)) {
+        alert('Ya existe un usuario con ese nombre.');
+        return;
+      }
+      usuarios.push({ id: siguienteUsuarioId++, usuario: username, password, rol });
+    }
+
+    saveState();
+    showManageUsers();
+  });
+
+  document.getElementById('cancelarUsuario').addEventListener('click', () => showManageUsers());
+}
+
 function exportStateToFile() {
   try {
-    const raw = localStorage.getItem('caja_frenchies_state') || JSON.stringify({ productos, reparaciones, siguienteProductoId, siguienteReparacionId });
+    const raw = localStorage.getItem('caja_frenchies_state') || JSON.stringify({ productos, reparaciones, ventas, turnos, usuarios, usuarioActual, turnoActual, siguienteProductoId, siguienteReparacionId, siguienteVentaId, siguienteTurnoId, siguienteUsuarioId });
     const blob = new Blob([raw], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -868,8 +1426,19 @@ function importStateFromFile() {
         state.productos.forEach(p => productos.push(p));
         reparaciones.length = 0;
         if (Array.isArray(state.reparaciones)) state.reparaciones.forEach(r => reparaciones.push(r));
+        ventas.length = 0;
+        if (Array.isArray(state.ventas)) state.ventas.forEach(v => ventas.push(v));
+        turnos.length = 0;
+        if (Array.isArray(state.turnos)) state.turnos.forEach(t => turnos.push(t));
+        usuarios.length = 0;
+        if (Array.isArray(state.usuarios)) state.usuarios.forEach(u => usuarios.push(u));
+        usuarioActual = state.usuarioActual || null;
+        turnoActual = state.turnoActual || null;
         siguienteProductoId = state.siguienteProductoId || siguienteProductoId;
         siguienteReparacionId = state.siguienteReparacionId || siguienteReparacionId;
+        siguienteVentaId = state.siguienteVentaId || siguienteVentaId;
+        siguienteTurnoId = state.siguienteTurnoId || siguienteTurnoId;
+        siguienteUsuarioId = state.siguienteUsuarioId || siguienteUsuarioId;
         saveState();
         alert('Importación completada.');
         showProducts();
@@ -885,15 +1454,24 @@ function importStateFromFile() {
 }
 
 function resetStateUI() {
-  if (!confirm('¿Restablecer datos? Esto eliminará los productos y reparaciones guardados.')) return;
+  if (!confirm('¿Restablecer datos? Esto eliminará los productos, reparaciones y cuentas guardadas.')) return;
   localStorage.removeItem('caja_frenchies_state');
   productos.length = 0;
   reparaciones.length = 0;
+  ventas.length = 0;
+  turnos.length = 0;
+  usuarios.length = 0;
+  usuarioActual = null;
+  turnoActual = null;
   siguienteProductoId = 1;
   siguienteReparacionId = 1;
+  siguienteVentaId = 1;
+  siguienteTurnoId = 1;
+  siguienteUsuarioId = 1;
   inicializar();
+  ensureDefaultAdmin();
   saveState();
-  showProducts();
+  showLogin('Datos restablecidos. Inicia sesión con el usuario administrador.');
 }
 
 function showStorageStatus(message, level = 'info') {
@@ -914,7 +1492,7 @@ function hideStorageStatus() {
 function showSaveTest() {
   let raw = null;
   try {
-    raw = localStorage.getItem('caja_frenchies_state') || JSON.stringify({ productos, reparaciones, siguienteProductoId, siguienteReparacionId }, null, 2);
+    raw = localStorage.getItem('caja_frenchies_state') || JSON.stringify({ productos, reparaciones, ventas, turnos, turnoActual, siguienteProductoId, siguienteReparacionId, siguienteVentaId, siguienteTurnoId }, null, 2);
   } catch (e) {
     raw = 'Error accediendo a localStorage: ' + (e && e.message ? e.message : '');
   }
@@ -966,12 +1544,26 @@ if (!checkLocalStorageAvailable()) {
   // show persistent notification
   document.addEventListener('DOMContentLoaded', () => {
     showStorageStatus('LocalStorage no está disponible en este contexto. Usa Exportar/Importar como alternativa.', 'error');
+    registrarEventosConexion();
+    registrarEventos();
+    updateUserHeader();
+    showLogin();
   });
 } else {
-  if (!loadState()) {
+  const loaded = loadState();
+  if (!loaded) {
     inicializar();
+    ensureDefaultAdmin();
+    saveState();
+  } else {
+    ensureDefaultAdmin();
+  }
+  registrarEventosConexion();
+  registrarEventos();
+  updateUserHeader();
+  if (usuarioActual) {
+    showProducts();
+  } else {
+    showLogin();
   }
 }
-
-registrarEventos();
-showProducts();

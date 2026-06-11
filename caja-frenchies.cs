@@ -1,5 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Net.Http;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 enum Categoria
 {
@@ -18,7 +22,7 @@ enum EstadoReparacion
 class Producto
 {
     public int Id { get; set; }
-    public string Nombre { get; set; }
+    public string Nombre { get; set; } = string.Empty;
     public decimal Precio { get; set; }
     public int Stock { get; set; }
     public Categoria Categoria { get; set; }
@@ -27,15 +31,15 @@ class Producto
 class Reparacion
 {
     public int Id { get; set; }
-    public string Cliente { get; set; }
-    public string Telefono { get; set; }
-    public string Domicilio { get; set; }
-    public string Equipo { get; set; }
-    public string NumeroSerie { get; set; }
-    public string Problema { get; set; }
+    public string Cliente { get; set; } = string.Empty;
+    public string Telefono { get; set; } = string.Empty;
+    public string Domicilio { get; set; } = string.Empty;
+    public string Equipo { get; set; } = string.Empty;
+    public string NumeroSerie { get; set; } = string.Empty;
+    public string Problema { get; set; } = string.Empty;
     public decimal Costo { get; set; }
-    public string Contrasena { get; set; }
-    public string Patron { get; set; }
+    public string Contrasena { get; set; } = string.Empty;
+    public string Patron { get; set; } = string.Empty;
     public EstadoReparacion Estado { get; set; }
 }
 
@@ -46,20 +50,32 @@ class Program
     static int siguienteProductoId = 1;
     static int siguienteReparacionId = 1;
     static int stockBajoThreshold = 3;
+    static string dataFileName = "caja-frenchies-data.json";
+    static string dataFilePath = Path.Combine(AppContext.BaseDirectory, dataFileName);
+    static bool modoOnline = false;
 
     static void Main()
     {
-        InicializarProductos();
+        modoOnline = VerificarConexionInternet();
+        Console.WriteLine(modoOnline ? "Modo online: Conexión a Internet disponible." : "Modo offline: No se detectó Internet. Usando datos locales.");
+
+        if (!CargarDatos())
+        {
+            InicializarProductos();
+        }
+
         bool continuar = true;
 
         while (continuar)
         {
             MostrarMenu();
-            string opcion = Console.ReadLine();
-            Console.Clear();
+        string opcion = Console.ReadLine() ?? string.Empty;
 
             switch (opcion)
             {
+                case "0":
+                    MostrarEstadoConexionYGuardarDatos();
+                    break;
                 case "1":
                     AgregarProducto();
                     break;
@@ -113,6 +129,7 @@ class Program
     static void MostrarMenu()
     {
         Console.WriteLine("=== Sistema de Accesorios y Reparaciones de Celulares ===");
+        Console.WriteLine("0. Ver estado de conexión y guardar datos");
         Console.WriteLine("1. Agregar producto");
         Console.WriteLine("2. Mostrar productos");
         Console.WriteLine("3. Vender producto");
@@ -142,7 +159,7 @@ class Program
         Console.WriteLine("1. Accesorio");
         Console.WriteLine("2. Reparación (servicio)");
         Console.Write("Selecciona la categoría: ");
-        string categoriaInput = Console.ReadLine();
+        string categoriaInput = Console.ReadLine() ?? string.Empty;
 
         Categoria categoria;
         if (categoriaInput == "1")
@@ -160,10 +177,10 @@ class Program
         }
 
         Console.Write("Nombre: ");
-        string nombre = Console.ReadLine();
+        string nombre = Console.ReadLine() ?? string.Empty;
 
         Console.Write("Precio: ");
-        if (!decimal.TryParse(Console.ReadLine(), out decimal precio))
+        if (!decimal.TryParse(Console.ReadLine() ?? string.Empty, out decimal precio))
         {
             Console.WriteLine("Precio inválido.");
             return;
@@ -173,7 +190,7 @@ class Program
         if (categoria == Categoria.Accesorio)
         {
             Console.Write("Stock: ");
-            if (!int.TryParse(Console.ReadLine(), out stock))
+            if (!int.TryParse(Console.ReadLine() ?? string.Empty, out stock))
             {
                 Console.WriteLine("Stock inválido.");
                 return;
@@ -181,6 +198,7 @@ class Program
         }
 
         productos.Add(new Producto { Id = siguienteProductoId++, Nombre = nombre, Precio = precio, Stock = stock, Categoria = categoria });
+        GuardarDatos();
         Console.WriteLine("Producto agregado correctamente.");
     }
 
@@ -208,7 +226,7 @@ class Program
         MostrarProductos();
 
         Console.Write("ID del producto: ");
-        if (!int.TryParse(Console.ReadLine(), out int id))
+        if (!int.TryParse(Console.ReadLine() ?? string.Empty, out int id))
         {
             Console.WriteLine("ID inválido.");
             return;
@@ -230,6 +248,7 @@ class Program
             }
 
             producto.Stock--;
+            GuardarDatos();
             if (producto.Stock <= stockBajoThreshold)
             {
                 Console.WriteLine($"¡Stock bajo! Quedan {producto.Stock} unidades de {producto.Nombre}.");
@@ -256,7 +275,7 @@ class Program
         }
 
         Console.Write("ID del accesorio: ");
-        if (!int.TryParse(Console.ReadLine(), out int id))
+        if (!int.TryParse(Console.ReadLine() ?? string.Empty, out int id))
         {
             Console.WriteLine("ID inválido.");
             return;
@@ -270,13 +289,14 @@ class Program
         }
 
         Console.Write("Cantidad a agregar o quitar (usa signo negativo para reducir): ");
-        if (!int.TryParse(Console.ReadLine(), out int cantidad))
+        if (!int.TryParse(Console.ReadLine() ?? string.Empty, out int cantidad))
         {
             Console.WriteLine("Cantidad inválida.");
             return;
         }
 
         accesorio.Stock = Math.Max(0, accesorio.Stock + cantidad);
+        GuardarDatos();
         Console.WriteLine($"Stock actualizado. Nuevo stock de {accesorio.Nombre}: {accesorio.Stock}");
         if (accesorio.Stock <= stockBajoThreshold)
         {
@@ -288,31 +308,31 @@ class Program
     {
         Console.WriteLine("--- Registrar reparación ---");
         Console.Write("Nombre del cliente: ");
-        string cliente = Console.ReadLine();
+        string cliente = Console.ReadLine() ?? string.Empty;
 
         Console.Write("Teléfono de contacto: ");
-        string telefono = Console.ReadLine();
+        string telefono = Console.ReadLine() ?? string.Empty;
 
         Console.Write("Domicilio: ");
-        string domicilio = Console.ReadLine();
+        string domicilio = Console.ReadLine() ?? string.Empty;
 
         Console.Write("Equipo (modelo/marca): ");
-        string equipo = Console.ReadLine();
+        string equipo = Console.ReadLine() ?? string.Empty;
 
         Console.Write("Número de serie: ");
-        string numeroSerie = Console.ReadLine();
+        string numeroSerie = Console.ReadLine() ?? string.Empty;
 
         Console.Write("Contraseña del celular (opcional): ");
-        string contrasena = Console.ReadLine();
+        string contrasena = Console.ReadLine() ?? string.Empty;
 
         Console.Write("Patrón del celular (opcional): ");
-        string patron = Console.ReadLine();
+        string patron = Console.ReadLine() ?? string.Empty;
 
         Console.Write("Descripción del problema: ");
-        string problema = Console.ReadLine();
+        string problema = Console.ReadLine() ?? string.Empty;
 
         Console.Write("Costo estimado: ");
-        if (!decimal.TryParse(Console.ReadLine(), out decimal costo))
+        if (!decimal.TryParse(Console.ReadLine() ?? string.Empty, out decimal costo))
         {
             Console.WriteLine("Costo inválido.");
             return;
@@ -333,6 +353,7 @@ class Program
             Estado = EstadoReparacion.Recibido
         });
 
+        GuardarDatos();
         Console.WriteLine("Reparación registrada correctamente con estado Recibido.");
     }
 
@@ -360,7 +381,7 @@ class Program
         Console.WriteLine("3. En proceso");
         Console.WriteLine("4. Completado");
         Console.Write("Selecciona el estado: ");
-        string seleccion = Console.ReadLine();
+        string seleccion = Console.ReadLine() ?? string.Empty;
 
         if (!TryParseEstado(seleccion, out EstadoReparacion estadoSeleccionado))
         {
@@ -449,7 +470,7 @@ class Program
         MostrarReparaciones();
 
         Console.Write("ID de la reparación: ");
-        if (!int.TryParse(Console.ReadLine(), out int id))
+        if (!int.TryParse(Console.ReadLine() ?? string.Empty, out int id))
         {
             Console.WriteLine("ID inválido.");
             return;
@@ -469,7 +490,7 @@ class Program
         Console.WriteLine("3. En proceso");
         Console.WriteLine("4. Completado");
         Console.Write("Opción: ");
-        string estadoInput = Console.ReadLine();
+        string estadoInput = Console.ReadLine() ?? string.Empty;
 
         switch (estadoInput)
         {
@@ -490,7 +511,100 @@ class Program
                 return;
         }
 
+        GuardarDatos();
         Console.WriteLine("Estado de reparación actualizado correctamente.");
+    }
+
+    static void MostrarEstadoConexionYGuardarDatos()
+    {
+        modoOnline = VerificarConexionInternet();
+        Console.WriteLine(modoOnline ? "Conexión a Internet disponible. El sistema está en modo online." : "No hay Internet. El sistema está en modo offline.");
+        GuardarDatos();
+        Console.WriteLine($"Datos guardados en: {dataFilePath}");
+    }
+
+    static bool CargarDatos()
+    {
+        try
+        {
+            if (!File.Exists(dataFilePath))
+            {
+                return false;
+            }
+
+            string json = File.ReadAllText(dataFilePath);
+            var opciones = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
+            };
+
+            var datos = JsonSerializer.Deserialize<DatosGuardados>(json, opciones);
+            if (datos == null)
+            {
+                return false;
+            }
+
+            productos = datos.Productos ?? new List<Producto>();
+            reparaciones = datos.Reparaciones ?? new List<Reparacion>();
+            siguienteProductoId = datos.SiguienteProductoId;
+            siguienteReparacionId = datos.SiguienteReparacionId;
+            return true;
+        }
+        catch
+        {
+            Console.WriteLine("No se pudo cargar datos locales. Se usarán valores iniciales.");
+            return false;
+        }
+    }
+
+    static void GuardarDatos()
+    {
+        try
+        {
+            var datos = new DatosGuardados
+            {
+                Productos = productos,
+                Reparaciones = reparaciones,
+                SiguienteProductoId = siguienteProductoId,
+                SiguienteReparacionId = siguienteReparacionId
+            };
+
+            var opciones = new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
+            };
+
+            string json = JsonSerializer.Serialize(datos, opciones);
+            File.WriteAllText(dataFilePath, json);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al guardar datos: {ex.Message}");
+        }
+    }
+
+    static bool VerificarConexionInternet()
+    {
+        try
+        {
+            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
+            using var response = client.GetAsync("https://example.com").GetAwaiter().GetResult();
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    class DatosGuardados
+    {
+        public List<Producto>? Productos { get; set; }
+        public List<Reparacion>? Reparaciones { get; set; }
+        public int SiguienteProductoId { get; set; }
+        public int SiguienteReparacionId { get; set; }
     }
 
     static void BuscarItems()
@@ -499,10 +613,10 @@ class Program
         Console.WriteLine("1. Buscar accesorio");
         Console.WriteLine("2. Buscar reparación");
         Console.Write("Selecciona opción: ");
-        string opcion = Console.ReadLine();
+        string opcion = Console.ReadLine() ?? string.Empty;
 
         Console.Write("Ingresa el nombre o palabra clave: ");
-        string termino = Console.ReadLine().ToLower();
+        string termino = (Console.ReadLine() ?? string.Empty).ToLower();
 
         if (opcion == "1")
         {

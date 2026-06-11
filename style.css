@@ -25,10 +25,76 @@ body {
 }
 
 header {
-  padding: 2rem;
+  padding: 2rem 2rem 4rem;
   background: linear-gradient(135deg, #2563eb, #0ea5e9);
   color: white;
   text-align: center;
+  position: relative;
+}
+
+.header-info {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.user-status {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.user-status button {
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: transparent;
+  color: white;
+  padding: 0.5rem 0.85rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.user-status button:hover {
+  background: rgba(255,255,255,0.18);
+}
+
+.connection-status {
+  margin: 1rem auto 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  font-size: 0.95rem;
+}
+
+.status-dot {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 999px;
+  background: #f87171;
+}
+
+.status-dot.online {
+  background: #4ade80;
+}
+
+.status-dot.offline {
+  background: #f87171;
+}
+
+.connection-status span {
+  color: white;
+}
+
+.connection-note {
+  font-size: 0.8rem;
+  color: #d1d5db;
+  margin-top: 0.15rem;
+  display: block;
 }
 
 header p {
@@ -270,10 +336,16 @@ table th {
 }
 
 .storage-notifier {
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 10;
   padding: 0.85rem;
   border-radius: 12px;
-  margin-bottom: 1rem;
-  display: none;
+  display: none !important;
+  visibility: hidden;
+  opacity: 0;
 }
 
 .storage-notifier.error {
@@ -286,6 +358,7 @@ table th {
   background: #ecfeff;
   color: #065f46;
   border: 1px solid #bbf7d0;
+  
 }
 
 .json-output pre {

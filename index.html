@@ -11,11 +11,27 @@
     <header>
       <h1>Sistema de Caja Frenchies</h1>
       <p>Inventario de accesorios y gestión de reparaciones de celulares</p>
+      <div class="header-info">
+        <div class="connection-status">
+          <span id="connectionDot" class="status-dot offline"></span>
+          <div>
+            <span id="connectionText">Sin Internet</span>
+            <div id="connectionNote" class="connection-note">Sin conexión: trabajando en modo local.</div>
+          </div>
+        </div>
+        <div class="user-status">
+          <strong id="loginStatus">No conectado</strong>
+          <button id="logoutButton" type="button">Cerrar sesión</button>
+        </div>
+      </div>
+      <div id="storageNotifier" class="storage-notifier" style="display:none;"></div>
     </header>
 
     <main>
-      <nav class="menu">
+      <nav class="menu" style="display: none;">
         <button data-action="add-product">Agregar producto</button>
+        <button data-action="show-products">Mostrar productos</button>
+        <button data-action="start-shift" style="display:none;">Iniciar turno</button>
         <button data-action="show-products">Mostrar productos</button>
         <button data-action="sell-product">Vender producto</button>
         <button data-action="stock-control">Control de stock</button>
@@ -26,13 +42,15 @@
         <button data-action="completed-income">Ingresos completados</button>
         <button data-action="update-repair">Actualizar estado reparación</button>
         <button data-action="search">Buscar</button>
+        <button data-action="close-shift">Cierre de turno</button>
+        <button data-action="seller-report">Reporte vendedor</button>
+        <button data-action="manage-users">Administrar usuarios</button>
         <button data-action="export-data">Exportar datos</button>
         <button data-action="import-data">Importar datos</button>
         <button data-action="reset-data">Restablecer datos</button>
         <button data-action="test-save">Probar guardado</button>
       </nav>
 
-      <div id="storageNotifier" class="storage-notifier" style="display:none;"></div>
       <section class="panel" id="panel">
         <h2>Bienvenido</h2>
         <p>Usa el menú para gestionar accesorios y reparaciones.</p>
@@ -43,6 +61,3 @@
   <script src="script.js?v=1" defer></script>
 </body>
 </html>
-
-# desde la carpeta del proyecto
-python -m http.server 8000
